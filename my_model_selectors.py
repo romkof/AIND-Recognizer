@@ -6,7 +6,7 @@ import numpy as np
 from hmmlearn.hmm import GaussianHMM
 from sklearn.model_selection import KFold
 from asl_utils import combine_sequences
-
+import sys, traceback
 
 class ModelSelector(object):
     '''
@@ -84,11 +84,11 @@ class SelectorBIC(ModelSelector):
         for n_states in range(self.min_n_components, self.max_n_components):
             try:
                 hmm_model = self.base_model(n_states)
-                logL = hmm_model.score(self.X, self.lengths)
+                log_l = hmm_model.score(self.X, self.lengths)
                 num_of_features = self.X.shape[1]
                 number_of_parameters = n_states ** 2 + 2 * n_states * num_of_features - 1
                 number_of_data_points = len(self.lengths)
-                value = (-2 * logL) + (number_of_parameters * np.log(number_of_data_points))
+                value = (-2 * log_l) + (number_of_parameters * np.log(number_of_data_points))
                 if value < min_value:
                     min_value = value
                     best_model = hmm_model
@@ -139,6 +139,29 @@ class SelectorCV(ModelSelector):
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+        if len(self.sequences) <= 2:
+            return self.base_model(self.n_constant)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        split_method = KFold(n_splits=min(3, len(self.sequences)))
+        best_value = float('-inf')
+        best_model = None
+
+        for n_states in range(self.min_n_components, self.max_n_components):
+                try:
+                    log_l = []
+                    for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+                        self.X, self.lengths = combine_sequences(cv_train_idx, self.sequences)
+                        test_x, test_length = combine_sequences(cv_test_idx, self.sequences)
+                        hmm_model = self.base_model(n_states)
+
+                        log_l.append(hmm_model.score(test_length, test_length))
+                    value = np.mean(log_l)
+
+                except ValueError:
+                    return self.base_model(self.n_constant)
+
+                if value > best_value:
+                    best_value = value
+                    best_model = hmm_model
+
+        return best_model
