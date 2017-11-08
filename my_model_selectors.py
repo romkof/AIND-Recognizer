@@ -83,8 +83,7 @@ class SelectorBIC(ModelSelector):
 
         for n_states in range(self.min_n_components, self.max_n_components):
             try:
-                hmm_model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                hmm_model = self.base_model(n_states)
                 logL = hmm_model.score(self.X, self.lengths)
                 num_of_features = self.X.shape[1]
                 number_of_parameters = n_states ** 2 + 2 * n_states * num_of_features - 1
@@ -94,7 +93,6 @@ class SelectorBIC(ModelSelector):
                     min_value = value
                     best_model = hmm_model
             except ValueError:
-                print("something happed")
                 continue
 
         return best_model
@@ -113,8 +111,25 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        best_value = float('-inf')
+        best_model = None
+        other_words = [x for x in self.words.keys() if x != self.this_word]
+        m = len(self.words.keys())
+        for n_states in range(self.min_n_components, self.max_n_components):
+
+                try:
+                    hmm_model = self.base_model(n_states)
+                    log_p_x = hmm_model.score(self.X, self.lengths)
+                    sum_log_p_not_x = sum(hmm_model.score(*self.hwords[word]) for word in other_words)
+                    value = log_p_x - (1 / (m - 1)) * sum_log_p_not_x
+                except:
+                    continue
+
+                if value > best_value:
+                    best_value = value
+                    best_model = hmm_model
+
+        return best_model
 
 
 class SelectorCV(ModelSelector):
