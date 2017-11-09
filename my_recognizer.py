@@ -26,7 +26,7 @@ def recognize(models: dict, test_set: SinglesData):
         for word, model in models.items():
             try:
                 value = model.score(*xlengths)
-            except ValueError:
+            except (ValueError, AttributeError):
                 value = float('-inf')
             log_values[word] = value
 

@@ -44,6 +44,7 @@ class ModelSelector(object):
         except:
             if self.verbose:
                 print("failure on {} with {} states".format(self.this_word, num_states))
+                traceback.print_stack()
             return None
 
 
@@ -92,7 +93,7 @@ class SelectorBIC(ModelSelector):
                 if value < min_value:
                     min_value = value
                     best_model = hmm_model
-            except ValueError:
+            except (ValueError, AttributeError):
                 continue
 
         return best_model
@@ -122,7 +123,7 @@ class SelectorDIC(ModelSelector):
                     log_p_x = hmm_model.score(self.X, self.lengths)
                     sum_log_p_not_x = sum(hmm_model.score(*self.hwords[word]) for word in other_words)
                     value = log_p_x - (1 / (m - 1)) * sum_log_p_not_x
-                except:
+                except (ValueError, AttributeError):
                     continue
 
                 if value > best_value:
@@ -157,7 +158,7 @@ class SelectorCV(ModelSelector):
                         log_l.append(hmm_model.score(test_x, test_length))
                     value = np.mean(log_l)
 
-                except ValueError:
+                except (ValueError, AttributeError):
                     return self.base_model(self.n_constant)
 
                 if value > best_value:
