@@ -15,11 +15,21 @@ def recognize(models: dict, test_set: SinglesData):
             {SOMEWORD': LogLvalue, 'SOMEOTHERWORD' LogLvalue, ... },
             ]
        guesses is a list of the best guess words ordered by the test set word_id
-           ['WORDGUESS0', 'WORDGUESS1', 'WORDGUESS2',...]
+           ['WORDAGUESS0', 'WORDGUESS1', 'WORDGUESS2',...]
    """
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     probabilities = []
     guesses = []
-    # TODO implement the recognizer
-    # return probabilities, guesses
-    raise NotImplementedError
+
+    for word_id, xlengths in test_set.get_all_Xlengths().items():
+        log_values = {}
+        for word, model in models.items():
+            try:
+                value = model.score(*xlengths)
+            except ValueError:
+                value = float('-inf')
+            log_values[word] = value
+
+        guesses.append(max(log_values, key=log_values.get))
+        probabilities.append(log_values)
+    return probabilities, guesses

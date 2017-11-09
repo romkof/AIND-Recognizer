@@ -154,7 +154,7 @@ class SelectorCV(ModelSelector):
                         test_x, test_length = combine_sequences(cv_test_idx, self.sequences)
                         hmm_model = self.base_model(n_states)
 
-                        log_l.append(hmm_model.score(test_length, test_length))
+                        log_l.append(hmm_model.score(test_x, test_length))
                     value = np.mean(log_l)
 
                 except ValueError:
